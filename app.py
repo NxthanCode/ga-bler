@@ -1,43 +1,40 @@
-from flask import Flask, request, jsonify
-import json
-import os
+
+from flask import Flask, request
 
 app = Flask(__name__)
 
-DATA_FILE = "rewards.json"
 
+rewards = {}
 
-def load_rewards():
-    if not os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "w") as f:
-            json.dump({}, f)
-    with open(DATA_FILE, "r") as f:
-        return json.load(f)
-
-def save_rewards(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f)
-
+@app.route("/")
+def home():
+    return "Reward API läuft!"
 
 @app.route("/setReward", methods=["GET"])
 def set_reward():
-    user = request.args.get("userID")
-    reward = int(request.args.get("reward"))
+    userID = request.args.get("userID")
+    reward = request.args.get("reward")
 
-    data = load_rewards()
-    data[user] = reward
-    save_rewards(data)
+    if userID is None or reward is None:
+        return "ERROR: userID and reward required", 400
 
+    try:
+        reward = int(reward)
+    except:
+        return "ERROR: reward must be an integer", 400
+
+    rewards[userID] = reward
     return "OK"
-
 
 @app.route("/getReward", methods=["GET"])
 def get_reward():
-    user = request.args.get("userID")
-    data = load_rewards()
+    userID = request.args.get("userID")
+    if userID is None:
+        return "ERROR: userID required", 400
 
-    reward = data.get(user, 0)
-    return jsonify(reward)
+    reward = rewards.get(userID, 0)
+
+    return str(reward)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(host="0.0.0.0")
