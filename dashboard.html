@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gambler Dashboard</title>
+    <link rel = "stylesheet" href ="/styles.css">
+</head>
+<body>
+    <div class ="container">
+        <h1>Dashboard</h1>
+
+        <div class = "card">
+            <h2>Set Reward</h2>
+            <input type ="text" id = "setUserID" placeholder="User id">
+            <input type = "number" id ="setReward" placeholder = "Reward">
+            <button onclick = "setReward()">Set Reward</button>
+            <div class ="result" id ="setResult"></div>
+            <div class ="api-link" id = "setLink">Api link will be appearing here</div>
+        </div>
+
+        <div class ="card">
+            <h2>Get Reward</h2>
+            <input type = "text" id = "getUserID" placeholder="User id">
+            <button onclick ="getReward()">Get Reward</button>
+            <div class = "result" id = "getResult"></div>
+            <div class ="api-link" id ="setLink">Api Link will be appearing here</div>
+        </div>
+    </div>
+
+    <script src = "/dashboard.js"></script>
+</body>
+</html>
+
+
