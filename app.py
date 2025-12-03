@@ -1,30 +1,16 @@
-from flask import Flask, request, send_from_directory
+from flask import Flask, request
 from flask_cors import CORS
 
 app = Flask(__name__, static_folder='.')
-CORS(serve_static= ".")
+CORS(app)
 
 rewards = {}
 
-@app.get("/checkreward")
-def check_reward():
-    userid = request.args.get("userid")
-
-    if userid == "admin123":
-        return "1000"    
-    else:
-        return "100"    
-
-@app.route("/<path:filename>")
-def serve_static(filename):
-    if filename.endswith('.css') or filename.endswith('.js') or filename.endswith('.html'):
-        return send_from_directory('.', filename)
-    return "n", 404
 
 
 @app.route("/")
 def home():
-    return send_from_directory('.', 'dashboard.html')
+    return "laüft"
 
 @app.route("/setReward", methods=["GET"])
 def set_reward():
@@ -51,6 +37,16 @@ def get_reward():
     reward = rewards.get(userID, 0)
 
     return str(reward)
+
+
+@app.get("/checkreward")
+def check_reward():
+    userid = request.args.get("userid")
+
+    if userid == "admin123":
+        return "1000"    
+    else:
+        return "100"    
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", debug=True)
