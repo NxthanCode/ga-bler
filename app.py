@@ -34,13 +34,16 @@ def get_reward():
     reward = rewards.get(userID, 0)
     return str(reward)
 
-@app.get("/checkreward")
+@app.route("/checkreward", methods=["GET"])
 def check_reward():
     userID = request.args.get("userID")
 
+    if userID is None:
+        return "ERROR: userID required", 400
+
     if userID == "admin123":
         return "1000"
-    else: 
+    else:
         return "100"
 
 if __name__ == "__main__":
