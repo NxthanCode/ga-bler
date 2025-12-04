@@ -44,9 +44,10 @@ def check_reward():
     if userID == "admin123":
         return "1000"
     else:
-        return "100"
+        return "500"
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
+
 
 
