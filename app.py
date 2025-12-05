@@ -1,24 +1,20 @@
 from flask import Flask, request, jsonify, render_template, send_from_directory
-import json, os
+from pymongo import MongoClient
+from flask_cors import CORS
+import os
+from bson import json_util  # For JSON serialization
+import json
 
 app = Flask(__name__, static_folder='static')
+CORS(app)
 
-rewards = {}
+# MongoDB connection - USE ENVIRONMENT VARIABLE FOR SECURITY!
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://nathanntew:nathanntew@cluster0.tcyvxom.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+client = MongoClient(MONGO_URI)
+db = client["gamblesim"]  # Database name
+players_collection = db["players"]  # Collection name
 
-def load_data():
-    global rewards
-    try:
-        if os.path.exists('data.json'):
-            with open('data.json', 'r') as f:
-                rewards = json.load(f)
-    except:
-        rewards = {}
-
-def save_data():
-    with open('data.json', 'w') as f:
-        json.dump(rewards, f)
-    
-load_data()
+print(f"Connected to MongoDB: {client.server_info()}")
 
 @app.route("/")
 def dashboard():
@@ -32,6 +28,48 @@ def serve_css(filename):
 def serve_js(filename):
     return send_from_directory('static/js', filename)
 
+@app.route("/api/checkreward", methods=["GET"])
+def check_reward():
+    userID = request.args.get("userID")
+    
+    if userID is None:
+        return "ERROR: userID required", 400
+    
+    print(f"DEBUG: checkreward called - USERID: {userID}")
+    
+    # Check if setting reward
+    reward_param = request.args.get("reward")
+    
+    if reward_param is not None:
+        # SET mode: Save to MongoDB
+        try:
+            reward = int(reward_param)
+            # Upsert: Update if exists, insert if new
+            players_collection.update_one(
+                {"userID": userID},
+                {"$set": {"userID": userID, "reward": reward}},
+                upsert=True
+            )
+            print(f"✅ SAVED to MongoDB: {userID} -> {reward}")
+            return str(reward)
+        except ValueError:
+            return "ERROR: reward must be a number", 400
+    
+    # GET mode: Read from MongoDB
+    if userID == "admin123":
+        print(f"RETURNING: admin123 -> 1000")
+        return "1000"
+    else:
+        # Check MongoDB
+        player = players_collection.find_one({"userID": userID})
+        if player:
+            current_reward = player.get("reward", 100)
+            print(f"RETURNING from MongoDB: {userID} -> {current_reward}")
+            return str(current_reward)
+        else:
+            print(f"RETURNING: {userID} -> 100 (default)")
+            return "100"
+
 @app.route("/api/setReward", methods=["GET"])
 def set_reward():
     userID = request.args.get("userID")
@@ -42,18 +80,20 @@ def set_reward():
     
     try:
         reward = int(reward)
-    except:
+        players_collection.update_one(
+            {"userID": userID},
+            {"$set": {"userID": userID, "reward": reward}},
+            upsert=True
+        )
+        
+        return jsonify({
+            "success": True,
+            "userID": userID,
+            "reward": reward,
+            "message": f"Reward for {userID} set to {reward}"
+        })
+    except ValueError:
         return jsonify({"error": "reward must be a number"}), 400
-    
-    rewards[userID] = reward
-    save_data()
-    
-    return jsonify({
-        "success": True,
-        "userID": userID,
-        "reward": reward,
-        "message": f"Reward for {userID} set to {reward}"
-    })
 
 @app.route("/api/getReward", methods=["GET"])
 def get_reward():
@@ -61,69 +101,39 @@ def get_reward():
     if userID is None:
         return jsonify({"error": "userID required"}), 400
     
-    reward = rewards.get(userID, 0)
+    player = players_collection.find_one({"userID": userID})
+    reward = player.get("reward", 0) if player else 0
+    
     return jsonify({"userID": userID, "reward": reward})
-
-@app.route("/api/checkreward", methods=["GET"])
-def check_reward():
-    userID = request.args.get("userID")
-
-    if userID is None:
-        return "ERROR: userID required", 400
-
-    print(f"DEBUG: checkreward called - USERID: {userID}")
-    
-    # Check if there's a reward parameter to save
-    reward_param = request.args.get("reward")
-    
-    if reward_param is not None:
-        # SET mode: Save the reward
-        try:
-            reward = int(reward_param)
-            rewards[userID] = reward
-            save_data()
-            print(f"SAVED: {userID} -> {reward} to data.json")
-            return str(reward)  # Return the saved amount
-        except ValueError:
-            return "ERROR: reward must be a number", 400
-    
-    # GET mode: Return existing value
-    if userID == "admin123":
-        print(f"RETURNING: admin123 -> 1000")
-        return "1000"
-    else:
-        # Check if user exists in data
-        if userID in rewards:
-            current_reward = rewards[userID]
-            print(f"RETURNING: {userID} -> {current_reward} (from data.json)")
-            return str(current_reward)
-        else:
-            print(f"RETURNING: {userID} -> 100 (default)")
-            return "100"
-
-@app.route("/api/status")
-def api_status():
-    all_rewards = sum(rewards.values()) if rewards else 0
-    return jsonify({
-        "status": "online",
-        "endpoints": ["/api/setReward", "/api/getReward", "/api/checkreward", "/api/deletePlayer"],
-        "players": len(rewards),
-        "rewards": all_rewards,
-    })
 
 @app.route("/api/players")
 def get_players():
+    all_players = list(players_collection.find({}, {"_id": 0}))
     return jsonify({
         "players": [
-            {"id": k, "reward": v}
-            for k, v in rewards.items()
+            {"id": p["userID"], "reward": p["reward"]}
+            for p in all_players
         ]
     })
 
-
 @app.route("/api/data")
 def get_data():
-    return jsonify(rewards)
+    all_players = list(players_collection.find({}, {"_id": 0}))
+    # Convert to dict format like old data.json
+    data_dict = {p["userID"]: p["reward"] for p in all_players}
+    return jsonify(data_dict)
+
+@app.route("/api/status")
+def api_status():
+    all_players = list(players_collection.find({}))
+    total_rewards = sum(p.get("reward", 0) for p in all_players)
+    
+    return jsonify({
+        "status": "online",
+        "endpoints": ["/api/setReward", "/api/getReward", "/api/checkreward", "/api/deletePlayer"],
+        "players": len(all_players),
+        "rewards": total_rewards,
+    })
 
 @app.route("/api/deletePlayer", methods=["GET"])
 def delete_player():
@@ -132,9 +142,9 @@ def delete_player():
     if userID is None:
         return jsonify({"error": "userID required"}), 400
     
-    if userID in rewards:
-        del rewards[userID]
-        save_data()
+    result = players_collection.delete_one({"userID": userID})
+    
+    if result.deleted_count > 0:
         return jsonify({
             "success": True,
             "message": f"player {userID} deleted successfully"
@@ -142,21 +152,14 @@ def delete_player():
     else:
         return jsonify({"error": f"player {userID} not found"}), 404
 
-
 @app.route("/api/clearall", methods=["GET"])
 def clear_all_data():
-    global rewards 
-    rewards = {}
-    save_data()
+    result = players_collection.delete_many({})
     return jsonify({
         "success": True,
         "message": "all data cleared",
-        "players_deleted": len(rewards)
+        "players_deleted": result.deleted_count
     })
 
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0")
-
-
-
+    app.run(host="0.0.0.0", port=5000, debug=True)
