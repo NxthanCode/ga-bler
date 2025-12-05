@@ -64,17 +64,17 @@ def get_reward():
     reward = rewards.get(userID, 0)
     return jsonify({"userID": userID, "reward": reward})
 
-@app.route("/api/checkreward", methods=["GET"])
+@app.route("/checkreward", methods=["GET"])
 def check_reward():
     userID = request.args.get("userID")
-    
+
     if userID is None:
-        return jsonify({"error": "userID required"}), 400
-    
+        return "ERROR: userID required", 400
+
     if userID == "admin123":
-        return jsonify({"userID": userID, "reward": 1000})
+        return "1000"
     else:
-        return jsonify({"userID": userID, "reward": 0})
+        return "100"
 
 @app.route("/api/status")
 def api_status():
@@ -132,3 +132,4 @@ def clear_all_data():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
+
