@@ -64,7 +64,7 @@ def get_reward():
     reward = rewards.get(userID, 0)
     return jsonify({"userID": userID, "reward": reward})
 
-@app.route("/checkreward", methods=["GET"])
+@app.route("/api/checkreward", methods=["GET"])
 def check_reward():
     userID = request.args.get("userID")
 
@@ -132,4 +132,5 @@ def clear_all_data():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
+
 
