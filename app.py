@@ -1,9 +1,12 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify, render_template, send_from_directory
+from flask_cors import CORS
+import json, os
 
 app = Flask(__name__)
-
+CORS(app)
 
 rewards = {}
+balances = {}
 
 @app.route("/")
 def home():
@@ -37,6 +40,9 @@ def get_reward():
 @app.route("/checkreward", methods=["GET"])
 def check_reward():
     userID = request.args.get("userID")
+    print(f"debug: recieved request - userid: "+ userID)
+    print(f"debug: request url" + request.url)
+    print(f"debug: address: {request.remote_addr}")
 
     if userID is None:
         return "ERROR: userID required", 400
@@ -45,9 +51,21 @@ def check_reward():
         return "1000"
     else:
         return "500"
+    
+@app.route("/money", methods=["GET"])
+def money():
+    userID = request.args.get("userID")
+    if not userID:
+        return "ERROR: userID required", 400
+    
+    return str(balances.get(userID, 0))
+    
+
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
+
 
 
 
