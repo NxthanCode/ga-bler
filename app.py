@@ -71,10 +71,35 @@ def check_reward():
     if userID is None:
         return "ERROR: userID required", 400
 
+    print(f"DEBUG: checkreward called - USERID: {userID}")
+    
+    # Check if there's a reward parameter to save
+    reward_param = request.args.get("reward")
+    
+    if reward_param is not None:
+        # SET mode: Save the reward
+        try:
+            reward = int(reward_param)
+            rewards[userID] = reward
+            save_data()
+            print(f"SAVED: {userID} -> {reward} to data.json")
+            return str(reward)  # Return the saved amount
+        except ValueError:
+            return "ERROR: reward must be a number", 400
+    
+    # GET mode: Return existing value
     if userID == "admin123":
+        print(f"RETURNING: admin123 -> 1000")
         return "1000"
     else:
-        return "100"
+        # Check if user exists in data
+        if userID in rewards:
+            current_reward = rewards[userID]
+            print(f"RETURNING: {userID} -> {current_reward} (from data.json)")
+            return str(current_reward)
+        else:
+            print(f"RETURNING: {userID} -> 100 (default)")
+            return "100"
 
 @app.route("/api/status")
 def api_status():
@@ -132,5 +157,6 @@ def clear_all_data():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0")
+
 
 
