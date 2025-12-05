@@ -1,12 +1,35 @@
+import sys
+import subprocess
+import importlib
+
+# List of required packages
+required_packages = ['pymongo', 'flask_cors']
+
+def install_package(package):
+    """Install a package using pip"""
+    try:
+        print(f"Installing {package}...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+        print(f"✅ {package} installed successfully")
+    except Exception as e:
+        print(f"❌ Failed to install {package}: {e}")
+        sys.exit(1)
+
+# Check and install missing packages
+for package in required_packages:
+    try:
+        importlib.import_module(package if package != 'flask_cors' else 'flask_cors')
+        print(f"✅ {package} is already installed")
+    except ImportError:
+        install_package(package)
+
 from flask import Flask, request, jsonify, render_template, send_from_directory
 from pymongo import MongoClient
-from flask_cors import CORS
 import os
 from bson import json_util  # For JSON serialization
 import json
 
 app = Flask(__name__, static_folder='static')
-CORS(app)
 
 # MongoDB connection - USE ENVIRONMENT VARIABLE FOR SECURITY!
 MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://nathanntew:nathanntew@cluster0.tcyvxom.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
@@ -163,3 +186,4 @@ def clear_all_data():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
