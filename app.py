@@ -1,10 +1,21 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
+import json
 
 app = Flask(__name__)
 
 
 rewards = {}
 balances = {}
+
+def save_data():
+    try:
+        with open('data.json', 'w') as f:
+            json.dump(rewards, f, indent=2)
+        print(f"SAVED: data.json updated with {len(rewards)} players")
+        return True
+    except Exception as e:
+        print(f"ERROR saving data.json: {e}")
+        return False
 
 @app.route("/")
 def home():
@@ -38,17 +49,37 @@ def get_reward():
 @app.route("/checkreward", methods=["GET"])
 def check_reward():
     userID = request.args.get("userID")
-    print(f"debug: recieved request - userid: "+ userID)
-    print(f"debug: request url" + request.url)
-    print(f"debug: address: {request.remote_addr}")
-
     if userID is None:
-        return "ERROR: userID required", 400
+        return jsonify({"error": "userID required"}), 400
+    
+    print("debug: checkreward called - USERID: "+userID)
+    rewardd = request.args.get("reward")
 
-    if userID == "admin123":
-        return "1000"
+    if rewardd is not None:
+        try:
+            reward = int(rewardd)
+            rewards[userID] = reward
+            save_data()
+            print(f" SAVED: {userID} -> {reward} to data.json")
+
+            return jsonify({
+                "userID": userID,
+                "reward": reward,
+                "message": f"reward set to {reward}"
+            })
+        except ValueError:
+            return jsonify({"error": "reward must be a number"}), 500
     else:
-        return "500"
+        currentr = rewards.get(userID, 0)
+        if userID not in rewards:
+            rewards[userID] = 0
+            save_data()
+            print(f"CREATED: New user {userID} with 0 reward")
+
+        return jsonify({
+            "userID": userID,
+            "reward": currentr
+        }) 
     
 @app.route("/money", methods=["GET"])
 def money():
