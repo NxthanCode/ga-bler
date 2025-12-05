@@ -26,7 +26,7 @@ import os
 import json
 from datetime import datetime
 app = Flask(__name__, static_folder='static')
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://nathanntew:YOUR_PASSWORD@cluster0.tcyvxom.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+MONGO_URI = os.environ.get("MONGO_URI", "mongodb+srv://nathanntew:nathanntew@cluster0.tcyvxom.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 try:
     client = MongoClient(MONGO_URI)
     client.admin.command('ping')
@@ -201,3 +201,4 @@ def clear_all_data():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
+
