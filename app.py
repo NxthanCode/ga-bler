@@ -3,7 +3,7 @@ import subprocess
 import importlib
 
 # List of required packages
-required_packages = ['pymongo', 'flask_cors']
+required_packages = ['pymongo']
 
 def install_package(package):
     """Install a package using pip"""
@@ -186,4 +186,5 @@ def clear_all_data():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
+
 
